@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Work List</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #ffffff; --text: #1d2130; --muted: #6b7280;
+    --line: #e5e7eb; --accent: #3b5bdb; --accent-soft: #e7ecff;
+    --warn: #c2410c; --warn-soft: #fff1e6; --bad: #b91c1c; --bad-soft: #fde8e8;
+    --ok: #15803d; --ok-soft: #e7f6ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161c; --card: #1d2029; --text: #e8eaf0; --muted: #9aa1b1;
+      --line: #2d313d; --accent: #7c95ff; --accent-soft: #252c4a;
+      --warn: #fb923c; --warn-soft: #3a2616; --bad: #f87171; --bad-soft: #3b1d1d;
+      --ok: #4ade80; --ok-soft: #173123;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.45 "Segoe UI", system-ui, sans-serif;
+  }
+  .wrap { max-width: 720px; margin: 32px auto; padding: 0 16px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .today { color: var(--muted); margin-bottom: 20px; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; padding: 16px; margin-bottom: 16px;
+  }
+
+  /* Add form */
+  form { display: grid; grid-template-columns: 1fr 150px 150px auto; gap: 10px; align-items: end; }
+  label { display: flex; flex-direction: column; font-size: 12px; color: var(--muted); gap: 4px; }
+  input[type=text], input[type=date] {
+    font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+  }
+  input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  button { font: inherit; cursor: pointer; border-radius: 8px; }
+  .primary { background: var(--accent); color: #fff; border: 0; padding: 9px 16px; font-weight: 600; }
+  @media (max-width: 600px) { form { grid-template-columns: 1fr 1fr; } form label:first-child { grid-column: 1 / -1; } }
+
+  /* Filters */
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .chip {
+    border: 1px solid var(--line); background: var(--card); color: var(--text);
+    padding: 6px 12px; border-radius: 999px; font-size: 14px;
+  }
+  .chip.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .chip .n { opacity: .7; margin-left: 4px; }
+
+  /* Dropdown */
+  .dropdown-toggle {
+    width: 100%; display: flex; justify-content: space-between; align-items: center;
+    background: var(--card); color: var(--text); border: 1px solid var(--line);
+    padding: 12px 16px; font-weight: 600; font-size: 16px;
+  }
+  .dropdown-toggle .arrow { transition: transform .15s; }
+  .dropdown-toggle[aria-expanded=true] { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+  .dropdown-toggle[aria-expanded=true] .arrow { transform: rotate(180deg); }
+  .dropdown-panel {
+    border: 1px solid var(--line); border-top: 0; background: var(--card);
+    border-radius: 0 0 8px 8px; max-height: 60vh; overflow-y: auto;
+  }
+  .dropdown-panel[hidden] { display: none; }
+
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; border-top: 1px solid var(--line); }
+  li:first-child { border-top: 0; }
+  li input[type=checkbox] { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); }
+  .body { flex: 1; min-width: 0; }
+  .title { font-weight: 600; word-wrap: break-word; }
+  li.done .title { text-decoration: line-through; color: var(--muted); }
+  .meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; font-size: 13px; color: var(--muted); }
+  .tag { padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .tag.work { background: var(--accent-soft); color: var(--accent); }
+  .tag.due { background: var(--warn-soft); color: var(--warn); }
+  .tag.late { background: var(--bad-soft); color: var(--bad); }
+  .tag.fin { background: var(--ok-soft); color: var(--ok); }
+  .del { background: none; border: 0; color: var(--muted); font-size: 18px; padding: 0 4px; }
+  .del:hover { color: var(--bad); }
+  .empty { padding: 20px 16px; color: var(--muted); text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>My Work List</h1>
+  <div class="today" id="todayLabel"></div>
+
+  <div class="card">
+    <form id="addForm">
+      <label>Task
+        <input type="text" id="title" placeholder="e.g. Write lab report" required>
+      </label>
+      <label>Work on (day)
+        <input type="date" id="workDay">
+      </label>
+      <label>Deadline
+        <input type="date" id="deadline">
+      </label>
+      <button class="primary" type="submit">Add</button>
+    </form>
+  </div>
+
+  <div class="filters" id="filters">
+    <button class="chip active" data-filter="all">All</button>
+    <button class="chip" data-filter="doToday">Do today</button>
+    <button class="chip" data-filter="dueToday">Due today</button>
+    <button class="chip" data-filter="overdue">Overdue</button>
+  </div>
+
+  <button class="dropdown-toggle" id="toggle" aria-expanded="true" aria-controls="panel">
+    <span id="toggleLabel">All tasks</span><span class="arrow">▾</span>
+  </button>
+  <div class="dropdown-panel" id="panel">
+    <ul id="list"></ul>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = "workList.tasks.v1";
+  const FILTER_NAMES = { all: "All tasks", doToday: "Do today", dueToday: "Due today", overdue: "Overdue" };
+
+  // Local-time YYYY-MM-DD (avoids the UTC shift you get from toISOString)
+  function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+  function pretty(s) {
+    if (!s) return "";
+    const [y, m, d] = s.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  }
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; }
+  }
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); } catch {}
+  }
+
+  let tasks = load();
+  let filter = "all";
+
+  const matches = {
+    all: () => true,
+    doToday: t => !t.done && t.workDay === todayStr(),
+    dueToday: t => !t.done && t.deadline === todayStr(),
+    overdue: t => !t.done && t.deadline && t.deadline < todayStr(),
+  };
+
+  function render() {
+    const today = todayStr();
+    document.getElementById("todayLabel").textContent = "Today is " + pretty(today);
+
+    // Filter chip counts
+    document.querySelectorAll(".chip").forEach(chip => {
+      const f = chip.dataset.filter;
+      const n = tasks.filter(matches[f]).length;
+      chip.innerHTML = `${FILTER_NAMES[f].replace(" tasks", "")}<span class="n">${n}</span>`;
+      chip.classList.toggle("active", f === filter);
+    });
+
+    const shown = tasks
+      .filter(matches[filter])
+      .sort((a, b) => (a.done - b.done) || (a.deadline || "9999").localeCompare(b.deadline || "9999"));
+
+    document.getElementById("toggleLabel").textContent = `${FILTER_NAMES[filter]} (${shown.length})`;
+
+    const list = document.getElementById("list");
+    list.innerHTML = "";
+    if (!shown.length) {
+      list.innerHTML = `<li class="empty">${tasks.length ? "Nothing here." : "No tasks yet — add one above."}</li>`;
+      return;
+    }
+
+    for (const t of shown) {
+      const li = document.createElement("li");
+      if (t.done) li.classList.add("done");
+
+      const cb = document.createElement("input");
+      cb.type = "checkbox"; cb.checked = t.done; cb.title = "Mark done";
+      cb.onchange = () => { t.done = cb.checked; save(); render(); };
+
+      const body = document.createElement("div");
+      body.className = "body";
+      const title = document.createElement("div");
+      title.className = "title";
+      title.textContent = t.title;
+      const meta = document.createElement("div");
+      meta.className = "meta";
+
+      if (t.workDay) meta.append(span(`Work on: ${pretty(t.workDay)}`));
+      if (t.deadline) meta.append(span(`Due: ${pretty(t.deadline)}`));
+      if (t.done) meta.append(tag("Done", "fin"));
+      else {
+        if (t.workDay === today) meta.append(tag("Do today", "work"));
+        if (t.deadline === today) meta.append(tag("Due today", "due"));
+        else if (t.deadline && t.deadline < today) meta.append(tag("Overdue", "late"));
+      }
+      body.append(title, meta);
+
+      const del = document.createElement("button");
+      del.className = "del"; del.textContent = "×"; del.title = "Delete";
+      del.onclick = () => { tasks = tasks.filter(x => x !== t); save(); render(); };
+
+      li.append(cb, body, del);
+      list.append(li);
+    }
+  }
+  function span(text) { const s = document.createElement("span"); s.textContent = text; return s; }
+  function tag(text, cls) { const s = span(text); s.className = "tag " + cls; return s; }
+
+  document.getElementById("addForm").onsubmit = e => {
+    e.preventDefault();
+    const title = document.getElementById("title").value.trim();
+    if (!title) return;
+    tasks.push({
+      id: Date.now(),
+      title,
+      workDay: document.getElementById("workDay").value,
+      deadline: document.getElementById("deadline").value,
+      done: false,
+    });
+    save();
+    e.target.reset();
+    document.getElementById("workDay").value = todayStr();
+    document.getElementById("title").focus();
+    render();
+  };
+
+  document.getElementById("filters").onclick = e => {
+    const chip = e.target.closest(".chip");
+    if (!chip) return;
+    filter = chip.dataset.filter;
+    setOpen(true);
+    render();
+  };
+
+  const toggle = document.getElementById("toggle");
+  const panel = document.getElementById("panel");
+  function setOpen(open) { toggle.setAttribute("aria-expanded", open); panel.hidden = !open; }
+  toggle.onclick = () => setOpen(panel.hidden);
+
+  document.getElementById("workDay").value = todayStr();
+  render();
+  // Refresh "today" if the page is left open past midnight
+  setInterval(render, 60 * 1000);
+</script>
+</body>
+</html>

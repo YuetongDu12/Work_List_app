@@ -1,2 +1,5 @@
+# Build leftovers (recreated by build.ps1)
 build/
-dist/*.exe
+
+# The icon — recreated automatically by make-icon.ps1
+app.ico
